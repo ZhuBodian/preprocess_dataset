@@ -39,7 +39,7 @@ def calculate_split_info(path: str, label_dict: dict, args):
     # create classes_name.json
     # 字母数字标签到数字标签、字母标签R
     long_label_dict = dict([(label, [index, label_dict[label]]) for index, label in enumerate(labels)])
-    all_class2text = dict([(v[0], [v[1]]) for k, v in long_label_dict.items()])
+    all_class2text = dict((v[0], v[1]) for k, v in long_label_dict.items())
 
     # concat csv data
     data = pd.concat([train_data, val_data, test_data], axis=0)
@@ -54,7 +54,7 @@ def calculate_split_info(path: str, label_dict: dict, args):
         args.extraction_order = np.random.randint(0, 100, args.class_num)
     extracted_data = pd.DataFrame(columns=['filename', 'label'])
     for num_label in args.extraction_order:
-        word_label = all_class2text[num_label][0]
+        word_label = all_class2text[num_label]
         extracted_data = extracted_data.append(data[data['label'] == word_label][:args.single_class_pics])
 
     # 将对应的类与图片提出，放到一个新的文件夹中
@@ -63,14 +63,20 @@ def calculate_split_info(path: str, label_dict: dict, args):
     if not os.path.isdir(tiny_path):
         os.makedirs(tiny_path)
         os.makedirs(tiny_imagePath)
-    extracted_data.to_csv(os.path.join(tiny_path, 'all.csv'), index=False)
 
-    extracted_labels = list(set(extracted_data['label']))
-    extracted_labels.sort()
-    category_image_nums = dict(((extracted_label, 0) for extracted_label in extracted_labels))
+    extracted_text_labels = list(set(extracted_data['label']))
+    extracted_text_labels.sort()
+    extracted_num_labels = [idx for idx in range(len(extracted_text_labels))]
+    num2text_dict = dict((idx, text_label) for idx, text_label in enumerate(extracted_text_labels))
+    text2num_dict = dict((text_label, idx) for idx, text_label in enumerate(extracted_text_labels))
+    category_image_nums = dict(((num_label, 0) for num_label in extracted_num_labels))
+
     for idx, row in extracted_data.iterrows():
+        row['label'] = text2num_dict[row['label']]
         shutil.copy(os.path.join(image_dir, row['filename']), os.path.join(tiny_imagePath, row['filename']))
         category_image_nums[row['label']]+=1
+
+    extracted_data.to_csv(os.path.join(tiny_path, 'all.csv'), index=False)
 
     # 生成train、test的csv文件
     split = StratifiedShuffleSplit(n_splits=1, test_size=args.test_rate, random_state=42)
@@ -84,7 +90,7 @@ def calculate_split_info(path: str, label_dict: dict, args):
     dataset_att['category_image_nums'] = category_image_nums
     dataset_att['dataset_pars'] = vars(args)
 
-    utils.create_json(os.path.join(tiny_path, 'num2text_label.json'), extracted_labels)
+    utils.create_json(os.path.join(tiny_path, 'num2text_label.json'), num2text_dict)
     utils.create_json(os.path.join(tiny_path, 'dataset_att.json'), dataset_att)
 
 
