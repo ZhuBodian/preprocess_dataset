@@ -30,6 +30,9 @@ def calculate_split_info(path, args):
     for idx, row in train_df.iterrows():
         shutil.copy(os.path.join(original_image_dir, row['filename']), os.path.join(augment_image_dir, row['filename']))
 
+    for idx, row in test_df.iterrows():
+        shutil.copy(os.path.join(original_image_dir, row['filename']), os.path.join(augment_image_dir, row['filename']))
+
     train_rate = 1-dataset_att['dataset_pars']['test_rate']
     # 10类，初始每类600，测试集0.2，最终要每类2000，总的图片数：
     # （2000-600*0.8-600*0.2+600*1）*10
@@ -54,7 +57,7 @@ def calculate_split_info(path, args):
             else:
                 augment_times[idx] = 1
 
-        trsfm = transforms.Compose([transforms.RandAugment(num_ops=10, magnitude=15)])
+        trsfm = transforms.Compose([transforms.RandAugment()])
 
         for original_data_idx, times in augment_times.items():
             for i in range(times):
@@ -88,7 +91,7 @@ def main():
 
     # 输入参数，一共100类，准备分为多少类；每一类最多500张图片，准备分为多少张
     args = argparse.ArgumentParser(description='Create TinyImageNet from MiniImageNet')
-    args.add_argument('-n', '--no_less_than', default=2000, type=int,
+    args.add_argument('-n', '--no_less_than', default=1500, type=int,
                       help='every class have no less than this number')
     args.add_argument('-r', '--random_state', default=42, type=int,
                       help='random_state(default is 42)')
